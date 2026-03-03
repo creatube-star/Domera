@@ -1,0 +1,29 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Brokers Collection: Anyone can read, but only the broker can update their profile.
+    match /brokers/{brokerId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if request.auth != null && request.auth.uid == brokerId;
+    }
+    
+    // Properties Collection: Anyone can read properties. Only the owning broker can write/update.
+    match /properties/{propertyId} {
+      allow read: if true;
+      allow create: if true;
+      // You can only update/delete if the existing listing belongs to you
+      allow update, delete: if request.auth != null 
+                    && resource.data.brokerId == request.auth.uid;
+    }
+    
+    // Leads Collection: Users can submit leads. Brokers can read leads targeted at them.
+    match /leads/{leadId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null 
+                  && resource.data.brokerId == request.auth.uid;
+    }
+  }
+}
